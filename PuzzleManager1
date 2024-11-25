@@ -41,19 +41,21 @@ public class PuzzleManager1 : MonoBehaviour
     public Sprite XUNZHANG2; // 120-230 分數範圍的勳章圖片
     public Sprite XUNZHANG3; // 240 分以上的勳章圖片
 
+    private bool[] puzzleCompleted = new bool[5];
+    private GameObject[][] puzzlePiecesSets;
+    private Image[] backgroundImages;
+
     void Start()
     {
-        backgroundImageSet1.enabled = false;
-        backgroundImageSet2.enabled = false;
-        backgroundImageSet3.enabled = false;
-        backgroundImageSet4.enabled = false;
-        backgroundImageSet5.enabled = false;
+    puzzlePiecesSets = new[] { puzzlePiecesSet1, puzzlePiecesSet2, puzzlePiecesSet3, puzzlePiecesSet4, puzzlePiecesSet5 };
+    backgroundImages = new[] { backgroundImageSet1, backgroundImageSet2, backgroundImageSet3, backgroundImageSet4, backgroundImageSet5 };
 
-        HidePuzzlePieces(puzzlePiecesSet1);
-        HidePuzzlePieces(puzzlePiecesSet2);
-        HidePuzzlePieces(puzzlePiecesSet3);
-        HidePuzzlePieces(puzzlePiecesSet4);
-        HidePuzzlePieces(puzzlePiecesSet5);
+
+    foreach (var pieces in puzzlePiecesSets)
+        HidePuzzlePieces(pieces);
+    
+    foreach (var bg in backgroundImages)
+        bg.enabled = false;
 
         dialoguePanel.SetActive(false);
         nextButton.gameObject.SetActive(false); // 初始化時隱藏 nextButton
@@ -62,54 +64,43 @@ public class PuzzleManager1 : MonoBehaviour
         UpdateScoreText();
         UpdateXunZhangImage(); // 初始化時更新勳章
     }
-
     private void HidePuzzlePieces(GameObject[] puzzlePieces)
-    {
-        foreach (GameObject piece in puzzlePieces)
         {
-            piece.SetActive(false);
-            piece.GetComponent<Draggable1>().enabled = false;
+            foreach (GameObject piece in puzzlePieces)
+            {
+                piece.SetActive(false);
+                piece.GetComponent<Draggable1>().enabled = false;
+            }
         }
-    }
-
+    
     public void OnImageScanned(int imageTargetID)
+{
+    EnableBackgroundImage(imageTargetID);
+    scoreText.enabled = true;
+    UpdateScoreText();
+
+    int index = imageTargetID - 1; // 將 imageTargetID 映射到索引
+    if (index >= 0 && index < puzzlePiecesSets.Length && !puzzleCompleted[index])
     {
-        backgroundImageSet1.enabled = false;
-        backgroundImageSet2.enabled = false;
-        backgroundImageSet3.enabled = false;
-        backgroundImageSet4.enabled = false;
-        backgroundImageSet5.enabled = false;
+        // 激活當前拼圖組
+        ActivatePuzzlePieces(puzzlePiecesSets[index]);
+        // 顯示對應背景
+        backgroundImages[index].enabled = true;
 
-        scoreText.enabled = true;
+        scoreText.enabled = true; // 確保分數顯示
         UpdateScoreText();
-
-        if (imageTargetID == 1 && !isSet1Completed)
-        {
-            ActivatePuzzlePieces(puzzlePiecesSet1);
-            backgroundImageSet1.enabled = true;
-        }
-        else if (imageTargetID == 2 && isSet1Completed && !isSet2Completed)
-        {
-            ActivatePuzzlePieces(puzzlePiecesSet2);
-            backgroundImageSet2.enabled = true;
-        }
-        else if (imageTargetID == 3 && isSet1Completed && isSet2Completed && !isSet3Completed)
-        {
-            ActivatePuzzlePieces(puzzlePiecesSet3);
-            backgroundImageSet3.enabled = true;
-            UpdateXunZhangImage(); // 第三關開始前更新勳章
-        }
-        else if (imageTargetID == 4 && isSet1Completed && isSet2Completed && isSet3Completed && !isSet4Completed)
-        {
-            ActivatePuzzlePieces(puzzlePiecesSet4);
-            backgroundImageSet4.enabled = true;
-        }
-        else if (imageTargetID == 5 && isSet1Completed && isSet2Completed && isSet3Completed && isSet4Completed && !isSet5Completed)
-        {
-            ActivatePuzzlePieces(puzzlePiecesSet5);
-            backgroundImageSet5.enabled = true;
-        }
     }
+    }
+
+            private void EnableBackgroundImage(int imageTargetID)
+        {
+            backgroundImageSet1.enabled = imageTargetID == 1;
+            backgroundImageSet2.enabled = imageTargetID == 2;
+            backgroundImageSet3.enabled = imageTargetID == 3;
+            backgroundImageSet4.enabled = imageTargetID == 4;
+            backgroundImageSet5.enabled = imageTargetID == 5;
+        }
+
 
     private void ActivatePuzzlePieces(GameObject[] puzzlePieces)
     {
@@ -127,160 +118,136 @@ public class PuzzleManager1 : MonoBehaviour
 
     private void UpdateXunZhangImage()
 {
-    if (score >= 100)
+    if (score >= 240)
     {
-        XUNZHANG.texture = XUNZHANG3.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
+        SetXunZhangImage(XUNZHANG3.texture, 300);
     }
-    else if (score >= 40)
+    else if (score >= 120)
     {
-        XUNZHANG.texture = XUNZHANG2.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
+        SetXunZhangImage(XUNZHANG2.texture, 200);
     }
     else
     {
-        XUNZHANG.texture = XUNZHANG1.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
+        SetXunZhangImage(XUNZHANG1.texture, 200);
     }
 }
-
-
-    public void CheckCorrectPlacement()
+    private void SetXunZhangImage(Texture texture, float width)
     {
-        bool allCorrect = true;
-        GameObject[] currentPuzzlePieces;
-
-        if (!isSet1Completed)
-            currentPuzzlePieces = puzzlePiecesSet1;
-        else if (!isSet2Completed)
-            currentPuzzlePieces = puzzlePiecesSet2;
-        else if (!isSet3Completed)
-            currentPuzzlePieces = puzzlePiecesSet3;
-        else if (!isSet4Completed)
-            currentPuzzlePieces = puzzlePiecesSet4;
-        else
-            currentPuzzlePieces = puzzlePiecesSet5;
-
-        foreach (GameObject piece in currentPuzzlePieces)
-        {
-            if (!piece.GetComponent<Draggable1>().isInCorrectPosition)
-            {
-                allCorrect = false;
-                break;
-            }
-        }
-
-        if (allCorrect)
-        {
-            score += 20;
-            UpdateScoreText();
-
-            if (!isSet1Completed)
-            {
-                isSet1Completed = true;
-                ShowDialogue(0);
-                HidePuzzlePieces(puzzlePiecesSet1);
-                backgroundImageSet1.enabled = false;
-            }
-            else if (!isSet2Completed)
-            {
-                isSet2Completed = true;
-                ShowDialogue(1);
-                HidePuzzlePieces(puzzlePiecesSet2);
-                backgroundImageSet2.enabled = false;
-                UpdateXunZhangImage(); // 第二關完成後更新勳章
-            }
-            else if (!isSet3Completed)
-            {
-                isSet3Completed = true;
-                ShowDialogue(2);
-                HidePuzzlePieces(puzzlePiecesSet3);
-                backgroundImageSet3.enabled = false;
-            }
-            else if (!isSet4Completed)
-            {
-                isSet4Completed = true;
-                ShowDialogue(3);
-                HidePuzzlePieces(puzzlePiecesSet4);
-                backgroundImageSet4.enabled = false;
-            }
-            else
-            {
-                isSet5Completed = true;
-                ShowDialogue(4);
-                HidePuzzlePieces(puzzlePiecesSet5);
-                backgroundImageSet5.enabled = false;
-                Debug.Log("遊戲完成！");
-            }
-        }
+        XUNZHANG.texture = texture;
+        XUNZHANG.rectTransform.sizeDelta = new Vector2(width, XUNZHANG.rectTransform.sizeDelta.y);
     }
 
-private void ShowDialogue(int index)
-{
-    // 設定對話圖像
-    dialogueImage.sprite = dialogueImages[index];
+
+        public void CheckCorrectPlacement()
+    {
+        int currentSetIndex = GetCurrentPuzzleIndex();
+
+        if (currentSetIndex >= 0)
+        {
+            bool allCorrect = true;
+            foreach (var piece in puzzlePiecesSets[currentSetIndex])
+            {
+                if (!piece.GetComponent<Draggable1>().isInCorrectPosition)
+                {
+                    allCorrect = false;
+                    break;
+                }
+            }
+
+            if (allCorrect)
+                {
+                puzzleCompleted[currentSetIndex] = true; // 設置完成標誌
+                score += 20;                            // 增加分數
+                UpdateScoreText();
+                UpdateXunZhangImage();                  // 更新勳章
+                HidePuzzlePieces(puzzlePiecesSets[currentSetIndex]);
+                backgroundImages[currentSetIndex].enabled = false;
+                
+                    if (currentSetIndex == puzzleCompleted.Length - 1)
+                    {
+                        Debug.Log("遊戲完成！");
+                    }
+                }
+
+        }
+    }
     
-    // 根據不同的圖片索引設置顯示大小
-    AdjustImageSize(index);
-
-    // 設定對話文本與名稱
-    dialogueText.text = dialogueTexts[index];
-    dialogueNameText.text = dialogueNames[index];
-
-    // 顯示對話面板與按鈕
-    dialoguePanel.SetActive(true);
-    nextButton.gameObject.SetActive(true);
-
-    // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
-    if (isSet1Completed)
+        private int GetCurrentPuzzleIndex()
     {
-        dialogueFrame.enabled = true;
-    }
-}
-
-private void AdjustImageSize(int index)
-{
-    if (dialogueImage.sprite != null)
-    {
-        float imageWidth = dialogueImage.sprite.rect.width;
-        float imageHeight = dialogueImage.sprite.rect.height;
-
-        // 不同索引有不同的最大尺寸
-        float maxWidth = 400f; // 預設最大寬度
-        float maxHeight = 400f; // 預設最大高度
-
-        // 為每張圖片設定單獨的尺寸
-        switch (index)
+        for (int i = 0; i < puzzleCompleted.Length; i++)
         {
-            case 0:
-                maxWidth = 575f;
-                maxHeight = 794f;
-                break;
-            case 1:
-                maxWidth = 800f;
-                maxHeight = 621f;
-                break;
-            case 2:
-                maxWidth = 969f;
-                maxHeight = 676f;
-                break;
-            case 3:
-                maxWidth = 969f;
-                maxHeight = 676f;
-                break;
-            case 4:
-                maxWidth = 969f;
-                maxHeight = 676f;
-                break;
+            if (!puzzleCompleted[i])
+                return i;
         }
-
-        // 計算縮放比例，保持圖片比例
-        float scaleFactor = Mathf.Min(maxWidth / imageWidth, maxHeight / imageHeight);
-
-        // 調整 RectTransform 的大小
-        dialogueImage.rectTransform.sizeDelta = new Vector2(imageWidth * scaleFactor, imageHeight * scaleFactor);
+        return -1; // 所有拼圖都已完成
     }
-}
+
+    private void ShowDialogue(int index)
+    {
+        // 設定對話圖像
+        dialogueImage.sprite = dialogueImages[index];
+        
+        // 根據不同的圖片索引設置顯示大小
+        AdjustImageSize(index);
+
+        // 設定對話文本與名稱
+        dialogueText.text = dialogueTexts[index];
+        dialogueNameText.text = dialogueNames[index];
+
+        // 顯示對話面板與按鈕
+        dialoguePanel.SetActive(true);
+        nextButton.gameObject.SetActive(true);
+
+        // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
+        if (isSet1Completed)
+        {
+            dialogueFrame.enabled = true;
+        }
+    }
+
+    private void AdjustImageSize(int index)
+    {
+        if (dialogueImage.sprite != null)
+        {
+            float imageWidth = dialogueImage.sprite.rect.width;
+            float imageHeight = dialogueImage.sprite.rect.height;
+
+            // 不同索引有不同的最大尺寸
+            float maxWidth = 400f; // 預設最大寬度
+            float maxHeight = 400f; // 預設最大高度
+
+            // 為每張圖片設定單獨的尺寸
+            switch (index)
+            {
+                case 0:
+                    maxWidth = 575f;
+                    maxHeight = 794f;
+                    break;
+                case 1:
+                    maxWidth = 800f;
+                    maxHeight = 621f;
+                    break;
+                case 2:
+                    maxWidth = 969f;
+                    maxHeight = 676f;
+                    break;
+                case 3:
+                    maxWidth = 969f;
+                    maxHeight = 676f;
+                    break;
+                case 4:
+                    maxWidth = 969f;
+                    maxHeight = 676f;
+                    break;
+            }
+
+            // 計算縮放比例，保持圖片比例
+            float scaleFactor = Mathf.Min(maxWidth / imageWidth, maxHeight / imageHeight);
+
+            // 調整 RectTransform 的大小
+            dialogueImage.rectTransform.sizeDelta = new Vector2(imageWidth * scaleFactor, imageHeight * scaleFactor);
+        }
+    }
 
 
 
@@ -299,4 +266,5 @@ private void AdjustImageSize(int index)
             dialogueFrame.enabled = false;
         }
     }
+
 }
