@@ -1,0 +1,216 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using Firebase.Database;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
+using System;
+
+public class PuzzleManager1 : MonoBehaviour
+{
+    // 公開變數
+    public GameObject[] puzzlePiecesSet1, puzzlePiecesSet2, puzzlePiecesSet3, puzzlePiecesSet4, puzzlePiecesSet5;
+    public Transform[] puzzleSlots;
+    public Image backgroundImageSet1, backgroundImageSet2, backgroundImageSet3, backgroundImageSet4, backgroundImageSet5;
+    public GameObject dialoguePanel;
+    public Image dialogueImage;
+    public TextMeshProUGUI dialogueText, dialogueNameText, scoreText;
+    public Button nextButton;
+    public RawImage XUNZHANG;
+    public Sprite XUNZHANG1, XUNZHANG2, XUNZHANG3;
+    public Sprite[] dialogueImages;
+    public string[] dialogueTexts, dialogueNames;
+
+    // 私有變數
+    private int score = 0;
+    private bool isFirstPuzzleCompleted = false;
+    private GameObject[][] puzzlePiecesSets;
+    private Image[] backgroundImages;
+    private AuthManager authManager;
+
+    void Start()
+    {
+        // 初始化拼圖集和背景圖片陣列
+        puzzlePiecesSets = new[] { puzzlePiecesSet1, puzzlePiecesSet2, puzzlePiecesSet3, puzzlePiecesSet4, puzzlePiecesSet5 };
+        backgroundImages = new[] { backgroundImageSet1, backgroundImageSet2, backgroundImageSet3, backgroundImageSet4, backgroundImageSet5 };
+
+        // 隱藏所有拼圖與背景
+        foreach (var pieces in puzzlePiecesSets) HidePuzzlePieces(pieces);
+        foreach (var bg in backgroundImages) bg.enabled = false;
+
+        // 初始化UI
+        dialoguePanel.SetActive(false);
+        nextButton.gameObject.SetActive(false);
+        score = PlayerPrefs.GetInt("PlayerScore", 0);
+        UpdateScoreText();
+        UpdateXunZhangImage();
+
+        // 初始化AuthManager
+        authManager = FindObjectOfType<AuthManager>();
+    }
+
+    private void HidePuzzlePieces(GameObject[] puzzlePieces)
+    {
+        foreach (var piece in puzzlePieces)
+        {
+            piece.SetActive(false);
+            piece.GetComponent<Draggable1>().enabled = false;
+        }
+    }
+
+    public void OnImageScanned(int imageTargetID)
+    {
+        int index = imageTargetID - 1; // Convert ID to zero-based index
+        if (index < 0 || index >= puzzlePiecesSets.Length) return;
+
+        // 啟用對應的背景圖片與拼圖
+        EnableBackgroundImage(index);
+        ActivatePuzzlePieces(puzzlePiecesSets[index]);
+
+        // 若為第一組拼圖且尚未完成，自動檢查正確性
+        if (index == 0 && !isFirstPuzzleCompleted)
+        {
+            isFirstPuzzleCompleted = true;
+            CheckCorrectPlacement();
+        }
+    }
+
+    private void EnableBackgroundImage(int index)
+    {
+        backgroundImages[index].enabled = true;
+    }
+
+    private void ActivatePuzzlePieces(GameObject[] puzzlePieces)
+    {
+        foreach (GameObject piece in puzzlePieces)
+        {
+            piece.SetActive(true);
+            piece.GetComponent<Draggable1>().enabled = true;
+        }
+    }
+
+    public void CheckCorrectPlacement()
+    {
+        if (!isFirstPuzzleCompleted) return;
+
+        bool allCorrect = true;
+        foreach (var piece in puzzlePiecesSet1)
+        {
+            if (!piece.GetComponent<Draggable1>().isInCorrectPosition)
+            {
+                allCorrect = false;
+                break;
+            }
+        }
+
+        if (allCorrect)
+        {
+            CompleteFirstPuzzle();
+        }
+    }
+
+    private void CompleteFirstPuzzle()
+    {
+        score += 20;
+        UpdateScoreText();
+        UpdateXunZhangImage();
+        HidePuzzlePieces(puzzlePiecesSet1);
+        backgroundImageSet1.enabled = false;
+
+        ShowDialogue(0);
+        SaveScoreToDatabase(score);
+    }
+
+    private void UpdateScoreText()
+    {
+        scoreText.text = score.ToString();
+    }
+
+    private void UpdateXunZhangImage()
+    {
+        if (score >= 240)
+        {
+            SetXunZhangImage(XUNZHANG3.texture, 300);
+        }
+        else if (score >= 120)
+        {
+            SetXunZhangImage(XUNZHANG2.texture, 200);
+        }
+        else
+        {
+            SetXunZhangImage(XUNZHANG1.texture, 200);
+        }
+    }
+
+    private void SetXunZhangImage(Texture texture, float width)
+    {
+        XUNZHANG.texture = texture;
+        XUNZHANG.rectTransform.sizeDelta = new Vector2(width, XUNZHANG.rectTransform.sizeDelta.y);
+    }
+
+    private void ShowDialogue(int index)
+    {
+        if (index < 0 || index >= dialogueImages.Length) return;
+
+        dialogueImage.sprite = dialogueImages[index];
+        AdjustImageSize(index);
+        dialogueText.text = dialogueTexts[index];
+        dialogueNameText.text = dialogueNames[index];
+
+        dialoguePanel.SetActive(true);
+        nextButton.gameObject.SetActive(true);
+    }
+
+    private void AdjustImageSize(int index)
+    {
+        if (dialogueImage.sprite == null) return;
+
+        float imageWidth = dialogueImage.sprite.rect.width;
+        float imageHeight = dialogueImage.sprite.rect.height;
+        float maxWidth = 400f, maxHeight = 400f;
+
+        switch (index)
+        {
+            case 0:
+                maxWidth = 575f; maxHeight = 794f; break;
+            case 1:
+                maxWidth = 800f; maxHeight = 621f; break;
+            case 2:
+                maxWidth = 969f; maxHeight = 676f; break;
+        }
+
+        float scaleFactor = Mathf.Min(maxWidth / imageWidth, maxHeight / imageHeight);
+        dialogueImage.rectTransform.sizeDelta = new Vector2(imageWidth * scaleFactor, imageHeight * scaleFactor);
+    }
+
+    public void OnNextButtonClicked()
+    {
+        SaveScoreToDatabase(score);
+        dialoguePanel.SetActive(false);
+        SceneManager.LoadScene("Score History Scene");
+    }
+
+    private void SaveScoreToDatabase(int score)
+    {
+        string username = authManager?.GetUsername();
+        if (string.IsNullOrEmpty(username)) return;
+
+        DatabaseReference dbRef = FirebaseDatabase.DefaultInstance.GetReference("scores");
+        string key = dbRef.Push().Key;
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var scoreEntry = new Dictionary<string, object>
+        {
+            { "username", username },
+            { "score", score },
+            { "timestamp", timestamp }
+        };
+
+        Debug.Log($"Saving score for user: {username}, Score: {score}");
+        dbRef.Child(key).SetValueAsync(scoreEntry).ContinueWith(task =>
+        {
+            if (task.IsCompleted) Debug.Log("Score saved successfully!");
+            else Debug.LogError("Failed to save score: " + task.Exception);
+        });
+    }
+}
