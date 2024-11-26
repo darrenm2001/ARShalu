@@ -1,115 +1,98 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using Firebase.Database;
 using TMPro;
+using Firebase.Database;
+using Firebase.Auth;
+using System.Collections.Generic;
 using System;
 using UnityEngine.SceneManagement;
 
 public class HistoryManager : MonoBehaviour
 {
-    public Transform content; // Scroll View 的 Content
-    public GameObject scoreRecordPrefab; // 預製件，顯示單條分數
-    public GameObject loadingPanel; // 顯示載入過程的面板
+    public TextMeshProUGUI TMP_ScoreRecord_1; // 顯示分數的 TMP 元素
+    public Transform content; // 父容器
+    public GameObject recordPrefab; // 顯示分數記錄的預製件
+
+    private DatabaseReference dbRef;
 
     void Start()
     {
-        // 顯示載入中提示，並開始載入歷史分數
-        StartCoroutine(LoadScoreHistoryWithDelay());
-    }
-
-    // 延遲載入分數歷史紀錄
-    private IEnumerator LoadScoreHistoryWithDelay()
-    {
-        loadingPanel.SetActive(true); // 顯示載入中的面板
-        yield return new WaitForSeconds(2); // 延遲 2 秒
-
-        LoadScoreHistory(); // 真正開始載入分數
-    }
-
-    public void LoadScoreHistory()
-    {
-        Firebase.Auth.FirebaseUser user = Firebase.Auth.FirebaseAuth.DefaultInstance.CurrentUser;
-        if (user != null)
+            DisplayScoreRecord("150", "2024-11-26 14:00:00"); //手動
+        FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+        if (user == null)
         {
-        string userId = user.UserId; // 獲取目前登入的使用者 UID
-        DatabaseReference dbRef = FirebaseDatabase.DefaultInstance.GetReference("scores");
-        dbRef.GetValueAsync().ContinueWith(task =>
+            Debug.LogError("User not authenticated. Cannot load score history.");
+            TMP_ScoreRecord_1.text = "Not Authenticated.";
+            return;
+        }
+
+        string userId = user.UserId;
+        dbRef = FirebaseDatabase.DefaultInstance.GetReference("scores").Child(userId);
+
+        LoadScoresFromFirebase();
+    }
+        void DisplayScoreRecord(string score, string timestamp)
         {
-            if (task.IsCompleted)
+            // 創建一個新的記錄物件
+            GameObject recordInstance = Instantiate(recordPrefab, content); // 指定父物件 Content
+            recordInstance.transform.Find("ScoreText").GetComponent<TMP_Text>().text = score; // 確保名稱正確
+            recordInstance.transform.Find("TimestampText").GetComponent<TMP_Text>().text = timestamp;
+
+            // 如果使用額外顯示格式
+            // TMP_Text 組件位於不同的名稱 "TMP_ScoreText"，需要額外確認
+
+            // Transform scoreTextTransform = recordInstance.transform.Find("TMP_ScoreText");
+            // if (scoreTextTransform != null)
+            // {
+            //     TMP_Text scoreText = scoreTextTransform.GetComponent<TMP_Text>();
+            //     scoreText.text = $"Score: {score} | Time: {timestamp}";
+            // }
+        }
+
+    private void LoadScoresFromFirebase()
+{
+    dbRef.GetValueAsync().ContinueWith(task =>
+    {
+        if (task.IsCompleted)
+        {
+            DataSnapshot snapshot = task.Result;
+            if (snapshot.Exists)
             {
-                DataSnapshot snapshot = task.Result;  // 過濾並顯示該使用者的分數
-                
-                ClearOldRecords();    // 清空舊的紀錄
-
-                if (snapshot.ChildrenCount == 0)
+                foreach (DataSnapshot childSnapshot in snapshot.Children)
                 {
-                    DisplayNoScoresMessage(); // 顯示沒有紀錄的提示
+                    Dictionary<string, object> scoreEntry = (Dictionary<string, object>)childSnapshot.Value;
+
+                    // 獲取分數和時間戳
+                    string score = scoreEntry["score"].ToString();
+                    string timestamp = ConvertTimestampToDate((long)scoreEntry["timestamp"]);
+
+                    // 創建記錄
+                    GameObject newRecord = Instantiate(recordPrefab, content); // 指定父物件 Content
+                    newRecord.transform.Find("ScoreText").GetComponent<TMP_Text>().text = score;
+                    newRecord.transform.Find("TimestampText").GetComponent<TMP_Text>().text = timestamp;
                 }
-                else
-                {
-                    foreach (DataSnapshot child in snapshot.Children)
-                    {
-                        var scoreEntry = child.Value as Dictionary<string, object>; // 同步現有代碼處理分數顯示的邏輯
 
-                        if (scoreEntry.TryGetValue("score", out var scoreObj)) // 使用 TryGetValue 以防止鍵錯誤
-                        {
-                            string score = scoreObj.ToString();
-                            
-                            string displayText = $"Score: {score}"; // 顯示分數
-
-                            GameObject newRecord = Instantiate(scoreRecordPrefab, content);  // 實例化新紀錄
-                            TextMeshProUGUI recordText = newRecord.GetComponent<TextMeshProUGUI>();
-
-                            if (recordText != null)
-                            {
-                                recordText.text = displayText;
-                            }
-                    }
-                }
+                TMP_ScoreRecord_1.text = "Score Records Loaded.";
+            }
+            else
+            {
+                TMP_ScoreRecord_1.text = "No Score Records Found.";
             }
         }
         else
         {
             Debug.LogError("Failed to load score history: " + task.Exception);
+            TMP_ScoreRecord_1.text = "Error Loading Scores.";
         }
+    });
+}
 
-        loadingPanel.SetActive(false);
-        });
-        }
-        else
-        {
-            Debug.LogError("No user is currently logged in.");
-            DisplayNoScoresMessage();
-        }
-    }
-
-    // 清空舊的紀錄
-    private void ClearOldRecords()
+    private string ConvertTimestampToDate(long timestamp)
     {
-        foreach (Transform child in content)
-        {
-            Destroy(child.gameObject);
-        }
+        DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
+        return dateTime.ToString("yyyy/MM/dd HH:mm:ss");
     }
-
-    // 顯示沒有分數紀錄的訊息
-    private void DisplayNoScoresMessage()
-    {
-        GameObject noScoresMessage = new GameObject("NoScoresMessage");
-        TextMeshProUGUI tmp = noScoresMessage.AddComponent<TextMeshProUGUI>();
-        tmp.text = "No score records found.";
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.fontSize = 24;
-        tmp.color = Color.white;
-
-        // 將訊息顯示在 ScrollView 中
-        noScoresMessage.transform.SetParent(content, false);
-    }
-
     public void OnNavigateToHome()
     {
         SceneManager.LoadScene("Home");
     }
-    
 }
