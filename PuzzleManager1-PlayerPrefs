@@ -26,6 +26,11 @@ public class PuzzleManager1 : MonoBehaviour
     public string[] dialogueTexts,dialogueNames;   // 用於顯示的文本和名稱
     public RawImage XUNZHANG; // 新增 RawImage UI 元件，用於顯示勳章
     public Sprite XUNZHANG1,XUNZHANG2,XUNZHANG3;
+    
+    public GameObject informPanel; // InformPanel面板
+    public Image informImage,ImageLog;      // 用於顯示人物圖像的UI Image和log
+    public TextMeshProUGUI informText; // 用於顯示TMP資訊內容
+    public Button informCloseButton;   // 關閉面板按鈕
 
 
 
@@ -53,6 +58,9 @@ public class PuzzleManager1 : MonoBehaviour
         score = PlayerPrefs.GetInt("PlayerScore", 0);
         UpdateScoreText();
         UpdateXunZhangImage(); // 初始化時更新勳章
+
+        informPanel.SetActive(true); // 初始化時顯示InformPanel
+        informCloseButton.onClick.AddListener(CloseInformPanel); // 設定關閉按鈕事件
     }
 
     private void HidePuzzlePieces(GameObject[] puzzlePieces)
@@ -89,7 +97,6 @@ public class PuzzleManager1 : MonoBehaviour
         {
             ActivatePuzzlePieces(puzzlePiecesSet3);
             backgroundImageSet3.enabled = true;
-            UpdateXunZhangImage(); // 第三關開始前更新勳章
         }
         else if (imageTargetID == 4 && isSet1Completed && isSet2Completed && isSet3Completed && !isSet4Completed)
         {
@@ -119,7 +126,7 @@ public class PuzzleManager1 : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private void UpdateXunZhangImage()
+    private void UpdateXunZhangImage() //測試勳章隨著分數變化
 {
     if (score >= 100)
     {
@@ -173,7 +180,6 @@ public class PuzzleManager1 : MonoBehaviour
                 ShowDialogue(0);
                 HidePuzzlePieces(puzzlePiecesSet1);
                 backgroundImageSet1.enabled = false;
-                // ShowScoreRecord();測試
             }
             else if (!isSet2Completed)
             {
@@ -203,7 +209,7 @@ public class PuzzleManager1 : MonoBehaviour
                 HidePuzzlePieces(puzzlePiecesSet5);
                 backgroundImageSet5.enabled = false;
                 Debug.Log("遊戲完成！");
-                // ShowScoreRecord();
+                // ShowScoreRecord(); 正式版時使用
             }
         }
     }
@@ -216,8 +222,7 @@ public class PuzzleManager1 : MonoBehaviour
         dialoguePanel.SetActive(true); // 顯示對話面板
         nextButton.gameObject.SetActive(true); // 顯示 nextButton
 
-        // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
-        if (isSet1Completed)
+        if (isSet1Completed)  // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
         {
             dialogueFrame.enabled = true;
         }
@@ -228,19 +233,19 @@ public class PuzzleManager1 : MonoBehaviour
         // 隱藏對話內容
         dialogueImage.sprite = null;
         dialogueText.text = "";
-        dialogueNameText.text = ""; // 清除對話名稱
+        dialogueNameText.text = "";
         dialoguePanel.SetActive(false);
         nextButton.gameObject.SetActive(false);
 
         // 只有當遊戲結束時才隱藏 dialogueFrame
-        if (isSet1Completed)
+        if (isSet1Completed) //使用拼圖1進行測試
         {
             dialogueFrame.enabled = false;
-            ShowScoreRecord();
+            ShowScoreRecord(); //顯示紀錄面板
         }
     }
-    // 新增：打開紀錄面板
-    public void ShowScoreRecord()
+
+    public void ShowScoreRecord()  //打開紀錄面板
     {
         scoreRecordPanel.SetActive(true);
 
@@ -249,9 +254,18 @@ public class PuzzleManager1 : MonoBehaviour
         scoreRecordText.text = "當前分數紀錄: " + savedScore;
     }
 
-    // 新增：關閉紀錄面板
-    public void CloseScoreRecordPanel()
+    public void CloseScoreRecordPanel()  //關閉紀錄面板
     {
         scoreRecordPanel.SetActive(false);
+    }
+
+     private void ShowInformPanel() // 顯示資訊面板
+    {
+        informPanel.SetActive(true);
+    }
+
+    private void CloseInformPanel()     // 關閉資訊面板
+    {
+        informPanel.SetActive(false);
     }
 }
