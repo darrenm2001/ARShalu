@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -87,7 +88,7 @@ public class ScoreManager : MonoBehaviour
     }
 
     private void UpdateXUNZHANG()
-{
+    {
     Sprite appropriateXUNZHANGSprite = null;
 
     if (score >= 0 && score <= 40)
@@ -118,6 +119,10 @@ public class ScoreManager : MonoBehaviour
             XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y);
         }
     }
-}
+    }   
+    public void LoadScene()
+    {
+            SceneManager.LoadScene("Game2");
 
+    }
     }
