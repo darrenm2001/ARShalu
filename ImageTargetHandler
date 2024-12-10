@@ -1,0 +1,52 @@
+using UnityEngine;
+using Vuforia; // 確保引入 Vuforia 命名空間
+
+public class ImageTargetHandler : MonoBehaviour
+{
+    private ObserverBehaviour mObserverBehaviour;
+    private bool isTargetFound = false; // 用於檢測目標是否被追踪
+
+    private void Start()
+    {
+        mObserverBehaviour = GetComponent<ObserverBehaviour>();
+        if (mObserverBehaviour)
+        {
+            mObserverBehaviour.OnTargetStatusChanged += OnObserverStatusChanged;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (mObserverBehaviour)
+        {
+            mObserverBehaviour.OnTargetStatusChanged -= OnObserverStatusChanged;
+        }
+    }
+
+    private void OnObserverStatusChanged(ObserverBehaviour behaviour, TargetStatus targetStatus)
+    {
+        if ((targetStatus.Status == Status.TRACKED || targetStatus.Status == Status.EXTENDED_TRACKED) &&
+            targetStatus.StatusInfo == StatusInfo.NORMAL)
+        {
+            isTargetFound = true; // 設置目標已被追踪
+        }
+        else
+        {
+            isTargetFound = false; // 重置目標追踪標記
+        }
+    }
+
+    private void OnMouseDown()
+    {
+        if (isTargetFound) // 只有在目標被追踪時才加分
+        {
+            OnTargetClicked();
+        }
+    }
+
+    private void OnTargetClicked()
+    {
+        Debug.Log("Image Target clicked");
+        ScoreManager.instance.AddScore(10); // 點擊目標增加10分
+    }
+}
