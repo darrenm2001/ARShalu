@@ -1,0 +1,123 @@
+using UnityEngine;
+using TMPro;
+using UnityEngine.UI;
+
+public class ScoreManager : MonoBehaviour
+{
+    public static ScoreManager instance;
+    public TextMeshProUGUI scoreText;
+    public Image XUNZHANG; // 勳章圖片的 UI 元件
+    public Sprite XUNZHANG1; // 勳章圖片，用於 0-110 分數範圍
+    public Sprite XUNZHANG2; // 勳章圖片，用於 120-230 分數範圍
+    public Sprite XUNZHANG3; // 勳章圖片，用於 240 分以上的範圍
+
+    private int score = 0;
+    private int initialScore = 0; // 儲存遊戲開始時的初始分數
+
+    private void Start() {
+        if (XUNZHANG == null) {
+            XUNZHANG = GameObject.Find("XUNZHANG").GetComponent<Image>();
+        }
+    }
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            ResetGameData(); // 在遊戲開始時重置分數和勳章
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    // 重置所有遊戲分數的保存數據
+    private void ResetGameData()
+    {
+        ClearScore();
+        score = 0;
+        initialScore = score;
+        PlayerPrefs.SetInt("PlayerScore", score);
+        PlayerPrefs.Save();
+        UpdateScoreText();
+        UpdateXUNZHANG();
+    }
+
+    public void ClearScore()
+    {
+        PlayerPrefs.DeleteKey("PlayerScore"); // 清除保存的分數紀錄
+    }
+
+    public void AddScore(int points)
+    {
+        score += points;
+        PlayerPrefs.SetInt("PlayerScore", score);
+        UpdateScoreText();
+        UpdateXUNZHANG(); // 根據新分數更新勳章圖片
+    }
+
+    public void UpdateScoreText()
+    {
+        scoreText.text = "" + score.ToString();
+    }
+
+    public void LoadScore()
+    {
+        score = PlayerPrefs.GetInt("PlayerScore", 0);
+        initialScore = score;
+        UpdateScoreText();
+        UpdateXUNZHANG(); // 初始化時設置正確的勳章圖片
+    }
+
+    public void ResetScore()
+    {
+        score = initialScore;
+        PlayerPrefs.SetInt("PlayerScore", score);
+        UpdateScoreText();
+        UpdateXUNZHANG(); // 重置分數時更新勳章圖片
+    }
+
+    public int GetScore()
+    {
+        return score;
+    }
+
+    private void UpdateXUNZHANG()
+{
+    Sprite appropriateXUNZHANGSprite = null;
+
+    if (score >= 0 && score <= 40)
+    {
+        appropriateXUNZHANGSprite = XUNZHANG1;
+    }
+    else if (score >= 40 && score <= 90)
+    {
+        appropriateXUNZHANGSprite = XUNZHANG2;
+    }
+    else if (score >= 100)
+    {
+        appropriateXUNZHANGSprite = XUNZHANG3;
+    }
+
+    if (XUNZHANG != null && appropriateXUNZHANGSprite != null)
+    {
+        XUNZHANG.sprite = appropriateXUNZHANGSprite;
+
+        // 如果使用的是 XUNZHANG3，將寬度設置為 300
+        if (appropriateXUNZHANGSprite == XUNZHANG3)
+        {
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y);
+        }
+        else
+        {
+            // 將尺寸還原為原始值，假設原始寬度為 200
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y);
+        }
+    }
+}
+
+    }
