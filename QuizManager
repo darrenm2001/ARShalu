@@ -1,0 +1,405 @@
+using UnityEngine;
+using TMPro;
+using UnityEngine.UI;
+using System.Collections.Generic;
+using System.Collections;
+using Vuforia;
+
+public class QuizManager : MonoBehaviour
+    {
+        public GameObject arCamera;
+        public ObserverBehaviour[] answerObservers; // 用於回答問題的圖片觀察器
+
+        public RawImage XUNZHANG; // 新增 Image UI 元件，用於顯示勳章
+        public Sprite XUNZHANG1; // 0-110 分數範圍的勳章圖片
+        public Sprite XUNZHANG2; // 120-230 分數範圍的勳章圖片
+        public Sprite XUNZHANG3; // 240 分以上的勳章圖片
+
+
+        public TextMeshProUGUI questionText; // 顯示題目的TextMeshProUGUI
+        public RawImage questionTextBackground; 
+        public RawImage ScanPromptsBackground; 
+        public Button[] answerButtons; // 答案按鈕數組
+        public TextMeshProUGUI scoreText; // 顯示分數的TextMeshProUGUI
+        public GameObject scanPrompt; // 顯示掃描提示的面板
+
+        public GameObject resultPanel; // 顯示最終結果的面板
+        public GameObject quizUI; // 顯示問題的UI
+        public TextMeshProUGUI resultText; // 顯示最終結果的TextMeshProUGUI
+        public Button nextLevelButton; // 下一關按鈕
+        public Button retryButton; // 重新開始按鈕
+
+        private List<Question> buttonQuestions = new List<Question>(); // 按鈕題庫
+        private List<Question> scanQuestions = new List<Question>(); // 掃描題庫
+
+        private List<Question> selectedQuestions = new List<Question>(); // 隨機選擇的問題
+
+        private int currentQuestionIndex; // 當前問題的索引
+        private int score; // 分數
+        private int correctAnswers; // 答對的題目數
+        private bool isScanQuestion; // 是否為掃描問題
+        private string correctScanTarget; // 正確的掃描目標名稱
+
+        private bool isGameFinished; // 追蹤遊戲是否結束
+
+        void Start()
+        {
+            quizUI.SetActive(false); // 隱藏UI
+            resultPanel.SetActive(false);
+            questionTextBackground.gameObject.SetActive(false);
+            ScanPromptsBackground.gameObject.SetActive(false);
+
+
+            ScoreManager.instance.LoadScore(); // 載入分數
+            UpdateScoreText(); // 更新分數顯示
+
+            // 監聽所有回答圖片的觀察器
+        foreach (ObserverBehaviour observer in answerObservers)
+        {
+            if (observer != null)
+            {
+                observer.OnTargetStatusChanged += OnAnswerImageScanned;
+            }
+        }
+
+            // 初始化題庫
+            InitializeQuestionPools();
+            // isGameFinished = false; // 初始化為未結束
+
+            arCamera.SetActive(true);
+            
+            StartGame();  // 遊戲一開始直接顯示題目和UI
+        }
+    void OnAnswerImageScanned(ObserverBehaviour observer, TargetStatus status)
+    {
+        if (isGameFinished)
+            return;
+
+        if (status.Status == Status.TRACKED && isScanQuestion)
+        {
+            if (observer.TargetName == correctScanTarget)
+            {
+                ScoreManager.instance.AddScore(20); // 使用 ScoreManager 更新分數
+                questionText.text = "掃描成功，答對咯！";
+                correctAnswers++; // 增加答對題數
+            }
+            else
+            {
+                questionText.text = "掃描錯誤，答錯咯！";
+            }
+            UpdateScoreText(); // 更新分數顯示
+            UpdateXUNZHANG(); // 更新勳章顯示
+            Invoke("NextQuestion", 1.0f);
+        }
+    }
+    void StartGame()
+    {
+        // 重置Vuforia追蹤器
+        VuforiaBehaviour.Instance.DevicePoseBehaviour.Reset();
+
+        // 確保在每次進入遊戲時，第一關未被玩時分數會被重置
+        ScoreManager.instance.LoadScore(); // 載入已重置的分數
+        quizUI.SetActive(true); // 顯示UI
+
+        // 顯示問題文字
+        questionText.gameObject.SetActive(true); // 確保 questionText 啟用
+        questionTextBackground.gameObject.SetActive(true);
+        ScanPromptsBackground.gameObject.SetActive(false);
+
+
+        SelectRandomQuestions(); // 隨機選擇問題
+        correctAnswers = 0; // 初始化答對題數
+        nextLevelButton.onClick.AddListener(OnNextLevel);
+        retryButton.onClick.AddListener(OnRetry);
+        resultPanel.SetActive(false);
+        scanPrompt.SetActive(false);
+
+        currentQuestionIndex = 0;
+        UpdateScoreText();
+        DisplayQuestion(); // 顯示第一個問題
+
+        // 重新顯示徽章圖片
+            UpdateXUNZHANG();
+    }
+
+
+
+        void InitializeQuestionPools()
+        {
+            // 按鈕選擇題庫
+            buttonQuestions.Add(new Question("沙鹿鎮上具有代表性與歷史意義的祠廟有：「朝興宮」、「保安官」、「玉皇宮」、「福興宮」與（        ）？",new string[] { "遷善社祠堂", "沙轆社", "碧蓮寺", "光輝道院" }, 0));
+            buttonQuestions.Add(new Question("沙鹿的第一座廟宇是（        ）？", new string[] { "玉皇宮", "保安宮", "朝興宮", "福興宮" }, 2));
+            buttonQuestions.Add(new Question("朝興宮位於和平街十八號，主祀（       ）？",new string[] { "玉皇大帝", "觀音菩薩", "關聖帝君", "媽祖" }, 3));
+            buttonQuestions.Add(new Question("沙鹿朝興宮創建於西元幾年？",new string[] { "西元一七三二年", "西元一六三九年", "西元一七四二年", "西元一四八七年" }, 0));
+            buttonQuestions.Add(new Question("沙鹿擁有可媲美台南、新竹與彰化具有歷史性的天公廟是哪座？",new string[] { "玉皇殿", "慈濟宮", "天后宮", "福德祠" }, 0));
+            buttonQuestions.Add(new Question("遷善社祠堂的設立與（          ）土塚的發現有關？",new string[] { "巴宰平埔族", "巴布拉平埔族", "巴布薩平埔族", "巴賽平埔族" }, 1));
+            buttonQuestions.Add(new Question("約在西元一六五零年。荷蘭人、西班牙人佔領台灣時，便開始著手進行全台島民調查，當時沙鹿被稱為",new string[] { "沙轆社", "沙陸社", "沙祿社", "沙魯社" }, 0));
+            buttonQuestions.Add(new Question("沙鹿區最早的居民主要是什麼族群？", new string[] { "平埔族", "阿美族", "達悟族", "巴賽族" }, 0));
+            buttonQuestions.Add(new Question("沙鹿區的命名與哪種動物有關？",new string[] { "松鼠", "梅花鹿", "山鹿", "斑馬" }, 2));
+            buttonQuestions.Add(new Question("在沙鹿擁有「台版萬里長城」美譽的是（          ）？",new string[] { "彩虹村", "沙鹿休閒景觀步道", "沙鹿十里路", "沙鹿老街" }, 1));
+            buttonQuestions.Add(new Question("沙鹿區的「沙鹿國小」創建於哪一年？",new string[] { "1900年", "1905年", "1915年", "1907年" }, 3));
+            buttonQuestions.Add(new Question("沙鹿區的「沙鹿高工」創建於哪一年？",new string[] { "1965", "1988", "1952", "1977" }, 2));
+            buttonQuestions.Add(new Question("沙鹿區著名自然文化景觀是（       ）？",new string[] { "沙鹿鎮立公園", "沙鹿晉宜公園", "沙鹿清泉公園", "沙鹿區公館公園" }, 0));
+            buttonQuestions.Add(new Question("透過「遷善社祠堂」、「番婆井」、「番婆橋」的存在，我們了解到（       ）比漢人更早定居於沙鹿。",new string[] { "阿美族", "卑南族", "平埔族", "巴布薩族" }, 2));
+            buttonQuestions.Add(new Question("沙鹿區最早的開墾者主要是來自哪裡？",new string[] { "福建泉州", "浙江杭州", "廣東梅州", "江西南昌" }, 0));
+
+            // 掃描題庫
+            scanQuestions.Add(new Question("沙鹿區內的著名大學是？",new string[] {"PU"},0));
+            scanQuestions.Add(new Question("沙鹿區的哪座建築具有歷史意義？",new string[]{"OldShaLuTrainStation"},0));
+            scanQuestions.Add(new Question("沙鹿區內著名的文化節慶活動是？",new string[]{"ShaLuMatsuParade"},0));
+            scanQuestions.Add(new Question("沙鹿區的主要宗教信仰中心是哪座廟宇？",new string[] {"ChaoXingTemple"},0));
+
+        }
+        
+
+        void SelectRandomQuestions()
+        {
+            // 選擇按鈕問題
+            List<int> selectedIndices = new List<int>();
+            while (selectedQuestions.Count < 4)
+            {
+                int index = Random.Range(0, buttonQuestions.Count);
+                if (!selectedIndices.Contains(index))
+                {
+                    selectedIndices.Add(index);
+                    selectedQuestions.Add(buttonQuestions[index]);
+                }
+            }
+            // 選擇掃描問題
+            int scanIndex = Random.Range(0, scanQuestions.Count);
+            selectedQuestions.Add(scanQuestions[scanIndex]);
+        }
+
+
+        void DisplayQuestion()
+    {
+        if (currentQuestionIndex < selectedQuestions.Count)
+        {
+            Question currentQuestion = selectedQuestions[currentQuestionIndex];
+            isScanQuestion = scanQuestions.Contains(currentQuestion);
+
+            if (isScanQuestion)
+            {
+                scanPrompt.SetActive(true); // 顯示掃描提示
+                ScanPromptsBackground.gameObject.SetActive(true);
+                foreach (var button in answerButtons)
+                {
+                    button.gameObject.SetActive(false);
+                }
+                questionText.text = currentQuestion.text;
+                correctScanTarget = currentQuestion.answers[currentQuestion.correctAnswerIndex]; // 設定正確的掃描目標
+            }
+            else
+            {
+                scanPrompt.SetActive(false); // 隱藏掃描提示
+                ScanPromptsBackground.gameObject.SetActive(false);
+
+                questionText.text = "題目 " + (currentQuestionIndex + 1).ToString() + ": " + currentQuestion.text;
+                for (int i = 0; i < answerButtons.Length; i++)
+                {
+                    answerButtons[i].gameObject.SetActive(true);
+                    answerButtons[i].GetComponentInChildren<TextMeshProUGUI>().text = currentQuestion.answers[i];
+                    int answerIndex = i;
+                    answerButtons[i].onClick.RemoveAllListeners();
+                    answerButtons[i].onClick.AddListener(() => OnAnswerSelected(answerIndex));
+                }
+            }
+        }
+        else
+        {
+            ShowScore();
+        }
+    }
+        void OnAnswerSelected(int index)
+    {
+        Question currentQuestion = selectedQuestions[currentQuestionIndex];
+
+        if (index == currentQuestion.correctAnswerIndex)
+        {
+            ScoreManager.instance.AddScore(20); // 使用 ScoreManager 更新分數
+            questionText.text = "答對！";
+            correctAnswers++; // 增加答對題數
+        }
+        else
+        {
+            questionText.text = "答錯！";
+        }
+
+        UpdateScoreText(); // 立刻更新分數
+        UpdateXUNZHANG(); //更新勳章
+        Invoke("NextQuestion", 1.0f);
+    }
+        void NextQuestion()
+        {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < selectedQuestions.Count)
+            {
+                DisplayQuestion();
+            }
+            else
+            {
+                ShowScore();
+            }
+        }
+
+        void UpdateScoreText()
+        {
+            // scoreText.text = "分數: " + score;
+            // // scoreText.text = " " + score;
+            scoreText.text = ScoreManager.instance.GetScore().ToString();
+            //scoreText.text = "分數: " + ScoreManager.instance.GetScore();
+
+        }
+
+        void ShowScore()
+    {
+        isGameFinished = true; // 遊戲結束
+        scanPrompt.SetActive(false); // 隱藏掃描提示面板
+
+        questionText.gameObject.SetActive(false);
+        questionTextBackground.gameObject.SetActive(false);
+        ScanPromptsBackground.gameObject.SetActive(false);
+
+
+        foreach (var button in answerButtons)
+        {
+            button.gameObject.SetActive(false);
+        }
+
+        resultPanel.SetActive(true);
+        // 直接從 ScoreManager 獲取分數
+        score = ScoreManager.instance.GetScore();
+        resultText.text = "你的分數是: " + score;
+
+        // 根據答對題數顯示結果，答對3題才能通關
+        if (correctAnswers >= 3)
+        {
+            resultText.text += "\n恭喜通關!";
+            nextLevelButton.gameObject.SetActive(true);
+            retryButton.gameObject.SetActive(false);
+        }
+        else
+        {
+            resultText.text += "\n遊戲失敗!";
+            nextLevelButton.gameObject.SetActive(false);
+            retryButton.gameObject.SetActive(true);
+        }
+    }
+
+    public void ResetScore()
+        {
+            ScoreManager.instance.ResetScore(); // 重置分數
+            UpdateXUNZHANG(); // 更新徽章顯示
+            UpdateScoreText(); // 更新分數顯示
+        }
+
+    private void UpdateXUNZHANG()
+    {
+        int score = ScoreManager.instance.GetScore();
+
+        // 根據分數範圍顯示不同的勳章
+        if (score <= 40)
+        {
+            XUNZHANG.texture = XUNZHANG1.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 假設原始寬度為 200
+        }
+        else if (score > 40 && score <= 90)
+        {
+            XUNZHANG.texture = XUNZHANG2.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 假設原始寬度為 200
+        }
+        else if (score >= 100)
+        {
+            XUNZHANG.texture = XUNZHANG3.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
+        }
+    }
+
+
+
+
+        void OnNextLevel()
+        {
+            // 實現進入下一關的邏輯
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Game3");
+        }
+
+    void OnRetry()
+    {
+        
+        // 清空選擇的問題以便重新選擇
+        selectedQuestions.Clear();
+        InitializeQuestionPools(); // 重新初始化題庫
+
+        questionTextBackground.gameObject.SetActive(true);
+        ScanPromptsBackground.gameObject.SetActive(true);
+        questionText.gameObject.SetActive(true); // 確保 questionText 在重試時顯示
+
+        // 清除 PlayerPrefs 的分數紀錄，確保不保留上一局的分數
+        ScoreManager.instance.ClearScore(); // 清除分數
+        ScoreManager.instance.ResetScore(); // 重置分數為第一關的分數
+
+        UpdateScoreText(); // 更新分數顯示
+
+        // 重新添加監聽器到圖片觀察器
+        foreach (ObserverBehaviour observer in answerObservers)
+        {
+            if (observer != null)
+            {
+                observer.OnTargetStatusChanged -= OnAnswerImageScanned; // 移除之前的監聽器
+                observer.OnTargetStatusChanged += OnAnswerImageScanned; // 重新添加監聽器
+            }
+        }
+
+        StartCoroutine(StartVuforiaAfterSceneLoad()); // 實現重新開始遊戲的邏輯
+    }
+
+
+
+
+
+    IEnumerator StartVuforiaAfterSceneLoad()
+    {
+        yield return new WaitForSeconds(0.1f); // 等待片刻
+
+        // 重置追蹤器以啟動 Vuforia 重新掃描
+        VuforiaBehaviour.Instance.DevicePoseBehaviour.Reset();
+
+        // 重置其他相關的變量或狀態
+        correctAnswers = 0;
+        isGameFinished = false;
+        currentQuestionIndex = 0;
+
+        // 重新顯示問題和UI
+        quizUI.SetActive(true);
+        resultPanel.SetActive(false);
+
+        // 重新選擇隨機問題並顯示第一個問題
+        SelectRandomQuestions();
+        DisplayQuestion();
+        UpdateScoreText();
+    }
+
+    // 假設這段程式碼在 Scene 2 的腳本中
+    public void SaveScore(int score)
+    {
+        PlayerPrefs.SetInt("PlayerScore", score); // 將分數存入 PlayerPrefs
+        PlayerPrefs.Save(); // 儲存 PlayerPrefs 的更改
+    }
+
+    [System.Serializable]
+    public class Question
+    {
+        public string text; // 問題文本
+        public string[] answers; // 答案選項
+        public int correctAnswerIndex; // 正確答案索引
+
+        // 構造函數
+        public Question(string text, string[] answers, int correctAnswerIndex)
+        {
+            this.text = text;
+            this.answers = answers;
+            this.correctAnswerIndex = correctAnswerIndex;
+        }
+    }
+}
