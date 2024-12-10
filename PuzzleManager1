@@ -97,7 +97,6 @@ public class PuzzleManager1 : MonoBehaviour
         {
             ActivatePuzzlePieces(puzzlePiecesSet3);
             backgroundImageSet3.enabled = true;
-            UpdateXunZhangImage(); // 第三關開始前更新勳章
         }
         else if (imageTargetID == 4 && isSet1Completed && isSet2Completed && isSet3Completed && !isSet4Completed)
         {
@@ -188,7 +187,6 @@ public class PuzzleManager1 : MonoBehaviour
                 ShowDialogue(1);
                 HidePuzzlePieces(puzzlePiecesSet2);
                 backgroundImageSet2.enabled = false;
-                UpdateXunZhangImage(); // 第二關完成後更新勳章
             }
             else if (!isSet3Completed)
             {
