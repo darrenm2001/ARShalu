@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Collections;
 using Vuforia;
+using UnityEngine.SceneManagement;
 
 public class QuizManager : MonoBehaviour
     {
@@ -353,11 +354,11 @@ public class QuizManager : MonoBehaviour
 
         StartCoroutine(StartVuforiaAfterSceneLoad()); // 實現重新開始遊戲的邏輯
     }
+    public void LoadScene(string SceneName)
+    {
+            SceneManager.LoadScene("Game3");
 
-
-
-
-
+    }   
     IEnumerator StartVuforiaAfterSceneLoad()
     {
         yield return new WaitForSeconds(0.1f); // 等待片刻
@@ -380,7 +381,6 @@ public class QuizManager : MonoBehaviour
         UpdateScoreText();
     }
 
-    // 假設這段程式碼在 Scene 2 的腳本中
     public void SaveScore(int score)
     {
         PlayerPrefs.SetInt("PlayerScore", score); // 將分數存入 PlayerPrefs
