@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class PuzzleManager1 : MonoBehaviour
 {
@@ -132,12 +133,12 @@ public class PuzzleManager1 : MonoBehaviour
 
     private void UpdateXunZhangImage() //測試勳章隨著分數變化
     {
-        if (score >= 100)
+        if (score >= 220)
         {
             XUNZHANG.texture = XUNZHANG3.texture;
             XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
         }
-        else if (score >= 40)
+        else if (score >= 170)
         {
             XUNZHANG.texture = XUNZHANG2.texture;
             XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
@@ -242,7 +243,12 @@ public class PuzzleManager1 : MonoBehaviour
         nextButton.gameObject.SetActive(false);
 
         // 只有當遊戲結束時才隱藏 dialogueFrame
-        if (isSet1Completed) //使用拼圖1進行測試
+        // if (isSet1Completed) //使用拼圖1進行測試
+        // {
+        //     dialogueFrame.enabled = false;
+        //     ShowScoreRecord(); //顯示紀錄面板
+        // }
+        if (isSet5Completed) 
         {
             dialogueFrame.enabled = false;
             ShowScoreRecord(); //顯示紀錄面板
@@ -283,5 +289,10 @@ public class PuzzleManager1 : MonoBehaviour
     private void CloseInformPanel()     // 關閉資訊面板
     {
         informPanel.SetActive(false);
+    }
+    public void backScene()
+    {
+            SceneManager.LoadScene("Home");
+
     }
 }
