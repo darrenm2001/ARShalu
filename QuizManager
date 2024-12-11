@@ -12,10 +12,7 @@ public class QuizManager : MonoBehaviour
         public ObserverBehaviour[] answerObservers; // 用於回答問題的圖片觀察器
 
         public RawImage XUNZHANG; // 新增 Image UI 元件，用於顯示勳章
-        public Sprite XUNZHANG1; // 0-110 分數範圍的勳章圖片
-        public Sprite XUNZHANG2; // 120-230 分數範圍的勳章圖片
-        public Sprite XUNZHANG3; // 240 分以上的勳章圖片
-
+        public Sprite XUNZHANG1,XUNZHANG2,XUNZHANG3; 
 
         public TextMeshProUGUI questionText; // 顯示題目的TextMeshProUGUI
         public RawImage questionTextBackground; 
@@ -304,17 +301,17 @@ public class QuizManager : MonoBehaviour
         int score = ScoreManager.instance.GetScore();
 
         // 根據分數範圍顯示不同的勳章
-        if (score <= 40)
+        if (score <= 160)
         {
             XUNZHANG.texture = XUNZHANG1.texture;
             XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 假設原始寬度為 200
         }
-        else if (score > 40 && score <= 90)
+        else if (score > 170 && score <= 210)
         {
             XUNZHANG.texture = XUNZHANG2.texture;
             XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 假設原始寬度為 200
         }
-        else if (score >= 100)
+        else if (score >= 220)
         {
             XUNZHANG.texture = XUNZHANG3.texture;
             XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
@@ -355,11 +352,12 @@ public class QuizManager : MonoBehaviour
 
         StartCoroutine(StartVuforiaAfterSceneLoad()); // 實現重新開始遊戲的邏輯
     }
-    public void LoadScene(string SceneName)
+    public void LoadScene()
     {
             SceneManager.LoadScene("Game3");
 
     }   
+    
     IEnumerator StartVuforiaAfterSceneLoad()
     {
         yield return new WaitForSeconds(0.1f); // 等待片刻
