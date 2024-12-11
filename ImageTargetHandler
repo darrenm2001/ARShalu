@@ -1,14 +1,17 @@
 using UnityEngine;
-using Vuforia; // 確保引入 Vuforia 命名空間
+using Vuforia;
 
 public class ImageTargetHandler : MonoBehaviour
 {
     private ObserverBehaviour mObserverBehaviour;
     private bool isTargetFound = false; // 用於檢測目標是否被追踪
+    private AudioSource audioSource;   // 用於播放音效
 
     private void Start()
     {
         mObserverBehaviour = GetComponent<ObserverBehaviour>();
+        audioSource = GetComponent<AudioSource>(); // 獲取 AudioSource 組件
+
         if (mObserverBehaviour)
         {
             mObserverBehaviour.OnTargetStatusChanged += OnObserverStatusChanged;
@@ -28,11 +31,27 @@ public class ImageTargetHandler : MonoBehaviour
         if ((targetStatus.Status == Status.TRACKED || targetStatus.Status == Status.EXTENDED_TRACKED) &&
             targetStatus.StatusInfo == StatusInfo.NORMAL)
         {
-            isTargetFound = true; // 設置目標已被追踪
+            if (!isTargetFound)
+            {
+                isTargetFound = true; // 設置目標已被追踪
+                PlayAppearanceSound(); // 播放音效
+            }
         }
         else
         {
             isTargetFound = false; // 重置目標追踪標記
+        }
+    }
+
+    private void PlayAppearanceSound()
+    {
+        if (audioSource != null)
+        {
+            audioSource.Play(); // 播放音效
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource component is missing!");
         }
     }
 
