@@ -43,6 +43,11 @@ public class QuizManager : MonoBehaviour
 
         private bool isGameFinished; // 追蹤遊戲是否結束
 
+        public GameObject informPanel; // InformPanel面板
+        public RawImage informImage,ImageLog;      // 用於顯示人物圖像的UI Image和log
+        public TextMeshProUGUI informText; // 用於顯示TMP資訊內容
+        public Button informCloseButton;   // 關閉面板按鈕
+
         void Start()
         {
             quizUI.SetActive(false); // 隱藏UI
@@ -52,8 +57,10 @@ public class QuizManager : MonoBehaviour
 
 
             ScoreManager.instance.LoadScore(); // 載入分數
-            UpdateScoreText(); // 更新分數顯示
+            UpdateScoreText(); // 更新分數顯示  
 
+            informPanel.SetActive(true); // 初始化時顯示InformPanel
+            informCloseButton.onClick.AddListener(CloseInformPanel); // 設定關閉按鈕事件
             // 監聽所有回答圖片的觀察器
         foreach (ObserverBehaviour observer in answerObservers)
         {
@@ -70,6 +77,7 @@ public class QuizManager : MonoBehaviour
             arCamera.SetActive(true);
             
             StartGame();  // 遊戲一開始直接顯示題目和UI
+
         }
     void OnAnswerImageScanned(ObserverBehaviour observer, TargetStatus status)
     {
@@ -122,9 +130,6 @@ public class QuizManager : MonoBehaviour
         // 重新顯示徽章圖片
             UpdateXUNZHANG();
     }
-
-
-
         void InitializeQuestionPools()
         {
             // 按鈕選擇題庫
@@ -315,15 +320,11 @@ public class QuizManager : MonoBehaviour
             XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
         }
     }
-
-
-
-
-        void OnNextLevel()
-        {
+    void OnNextLevel()
+    {
             // 實現進入下一關的邏輯
             UnityEngine.SceneManagement.SceneManager.LoadScene("Game3");
-        }
+    }
 
     void OnRetry()
     {
@@ -386,7 +387,15 @@ public class QuizManager : MonoBehaviour
         PlayerPrefs.SetInt("PlayerScore", score); // 將分數存入 PlayerPrefs
         PlayerPrefs.Save(); // 儲存 PlayerPrefs 的更改
     }
+    private void ShowInformPanel() // 顯示資訊面板
+    {
+        informPanel.SetActive(true);
+    }
 
+    private void CloseInformPanel()     // 關閉資訊面板
+    {
+        informPanel.SetActive(false);
+    }
     [System.Serializable]
     public class Question
     {
