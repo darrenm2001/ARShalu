@@ -7,18 +7,23 @@ public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager instance;
     public TextMeshProUGUI scoreText;
-    public Image XUNZHANG; // 勳章圖片的 UI 元件
-    public Sprite XUNZHANG1; // 勳章圖片，用於 0-110 分數範圍
-    public Sprite XUNZHANG2; // 勳章圖片，用於 120-230 分數範圍
-    public Sprite XUNZHANG3; // 勳章圖片，用於 240 分以上的範圍
+    public Image XUNZHANG;
+    public Sprite XUNZHANG1,XUNZHANG2,XUNZHANG3;
 
     private int score = 0;
     private int initialScore = 0; // 儲存遊戲開始時的初始分數
+
+    public GameObject informPanel; // InformPanel面板
+    public Image informImage,ImageLog;      // 用於顯示人物圖像的UI Image和log
+    public TextMeshProUGUI informText; // 用於顯示TMP資訊內容
+    public Button informCloseButton;   // 關閉面板按鈕
 
     private void Start() {
         if (XUNZHANG == null) {
             XUNZHANG = GameObject.Find("XUNZHANG").GetComponent<Image>();
         }
+        informPanel.SetActive(true); // 初始化時顯示InformPanel
+        informCloseButton.onClick.AddListener(CloseInformPanel); // 設定關閉按鈕事件
     }
 
     private void Awake()
@@ -124,5 +129,13 @@ public class ScoreManager : MonoBehaviour
     {
             SceneManager.LoadScene("Game2");
 
+    }
+     private void ShowInformPanel() // 顯示資訊面板
+    {
+        informPanel.SetActive(true);
+    }
+    private void CloseInformPanel()     // 關閉資訊面板
+    {
+        informPanel.SetActive(false);
     }
     }
