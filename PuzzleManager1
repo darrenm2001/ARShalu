@@ -4,25 +4,15 @@ using TMPro;
 
 public class PuzzleManager1 : MonoBehaviour
 {
-    public GameObject[] puzzlePiecesSet1;
-    public GameObject[] puzzlePiecesSet2;
-    public GameObject[] puzzlePiecesSet3;
-    public GameObject[] puzzlePiecesSet4;
-    public GameObject[] puzzlePiecesSet5;
+    public GameObject[] puzzlePiecesSet1,puzzlePiecesSet2,puzzlePiecesSet3,puzzlePiecesSet4,puzzlePiecesSet5;
 
     public Transform[] puzzleSlots;
-    public Image backgroundImageSet1;
-    public Image backgroundImageSet2;
-    public Image backgroundImageSet3;
-    public Image backgroundImageSet4;
-    public Image backgroundImageSet5;
+    public Image backgroundImageSet1,backgroundImageSet2,backgroundImageSet3,backgroundImageSet4,backgroundImageSet5;
 
-    public GameObject dialoguePanel;
-    public Image dialogueImage;
-    public TextMeshProUGUI dialogueText;
-    public TextMeshProUGUI dialogueNameText; // New TMP text for displaying the name
-    public Image dialogueFrame; // 固定的對話框圖像
-    public Button nextButton; // nextButton 元件
+    public GameObject dialoguePanel,scoreRecordPanel;
+    public Image dialogueImage,dialogueFrame;
+    public TextMeshProUGUI dialogueText,dialogueNameText,scoreRecordText;
+    public Button nextButton,closeRecordButton; // nextButton 元件
 
     public TextMeshProUGUI scoreText;
     private int score = 0;
@@ -33,13 +23,16 @@ public class PuzzleManager1 : MonoBehaviour
     private bool isSet5Completed = false;
 
     public Sprite[] dialogueImages; // 用於對話框的圖像
-    public string[] dialogueTexts;   // 用於顯示的文本
-    public string[] dialogueNames;   // 用於顯示的名稱
-
+    public string[] dialogueTexts,dialogueNames;   // 用於顯示的文本和名稱
     public RawImage XUNZHANG; // 新增 RawImage UI 元件，用於顯示勳章
-    public Sprite XUNZHANG1; // 0-110 分數範圍的勳章圖片
-    public Sprite XUNZHANG2; // 120-230 分數範圍的勳章圖片
-    public Sprite XUNZHANG3; // 240 分以上的勳章圖片
+    public Sprite XUNZHANG1,XUNZHANG2,XUNZHANG3;
+    
+    public GameObject informPanel; // InformPanel面板
+    public Image informImage,ImageLog;      // 用於顯示人物圖像的UI Image和log
+    public TextMeshProUGUI informText; // 用於顯示TMP資訊內容
+    public Button informCloseButton;   // 關閉面板按鈕
+
+
 
     void Start()
     {
@@ -58,9 +51,16 @@ public class PuzzleManager1 : MonoBehaviour
         dialoguePanel.SetActive(false);
         nextButton.gameObject.SetActive(false); // 初始化時隱藏 nextButton
         scoreText.enabled = false;
+
+        scoreRecordPanel.SetActive(false); // 開始時隱藏紀錄面板
+        closeRecordButton.onClick.AddListener(CloseScoreRecordPanel); // 設定按鈕事件
+
         score = PlayerPrefs.GetInt("PlayerScore", 0);
         UpdateScoreText();
         UpdateXunZhangImage(); // 初始化時更新勳章
+
+        informPanel.SetActive(true); // 初始化時顯示InformPanel
+        informCloseButton.onClick.AddListener(CloseInformPanel); // 設定關閉按鈕事件
     }
 
     private void HidePuzzlePieces(GameObject[] puzzlePieces)
@@ -121,29 +121,33 @@ public class PuzzleManager1 : MonoBehaviour
 
     private void UpdateScoreText()
     {
-        scoreText.text = "" + score;
+        string currentUser = PlayerPrefs.GetString("current_user");
+        scoreText.text = " " + score;
+
+        // 保存當前分數
+        PlayerPrefs.SetInt($"score_{currentUser}", score);
+        PlayerPrefs.Save();
     }
 
-    private void UpdateXunZhangImage()
-{
-    if (score >= 100)
-    {
-        XUNZHANG.texture = XUNZHANG3.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
-    }
-    else if (score >= 40)
-    {
-        XUNZHANG.texture = XUNZHANG2.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
-    }
-    else
-    {
-        XUNZHANG.texture = XUNZHANG1.texture;
-        XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
-    }
-}
 
-
+    private void UpdateXunZhangImage() //測試勳章隨著分數變化
+    {
+        if (score >= 100)
+        {
+            XUNZHANG.texture = XUNZHANG3.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(300, XUNZHANG.rectTransform.sizeDelta.y); // 調整寬度為 300
+        }
+        else if (score >= 40)
+        {
+            XUNZHANG.texture = XUNZHANG2.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
+        }
+        else
+        {
+            XUNZHANG.texture = XUNZHANG1.texture;
+            XUNZHANG.rectTransform.sizeDelta = new Vector2(200, XUNZHANG.rectTransform.sizeDelta.y); // 還原尺寸 (假設 200 是原來的寬度)
+        }
+    }
     public void CheckCorrectPlacement()
     {
         bool allCorrect = true;
@@ -173,7 +177,7 @@ public class PuzzleManager1 : MonoBehaviour
         {
             score += 20;
             UpdateScoreText();
-
+            UpdateXunZhangImage();
             if (!isSet1Completed)
             {
                 isSet1Completed = true;
@@ -209,6 +213,7 @@ public class PuzzleManager1 : MonoBehaviour
                 HidePuzzlePieces(puzzlePiecesSet5);
                 backgroundImageSet5.enabled = false;
                 Debug.Log("遊戲完成！");
+                // ShowScoreRecord(); 正式版時使用
             }
         }
     }
@@ -221,8 +226,7 @@ public class PuzzleManager1 : MonoBehaviour
         dialoguePanel.SetActive(true); // 顯示對話面板
         nextButton.gameObject.SetActive(true); // 顯示 nextButton
 
-        // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
-        if (isSet1Completed)
+        if (isSet1Completed)  // 在第一關拼圖完成後顯示 dialogueFrame，並保持顯示
         {
             dialogueFrame.enabled = true;
         }
@@ -233,14 +237,51 @@ public class PuzzleManager1 : MonoBehaviour
         // 隱藏對話內容
         dialogueImage.sprite = null;
         dialogueText.text = "";
-        dialogueNameText.text = ""; // 清除對話名稱
+        dialogueNameText.text = "";
         dialoguePanel.SetActive(false);
         nextButton.gameObject.SetActive(false);
 
         // 只有當遊戲結束時才隱藏 dialogueFrame
-        if (isSet5Completed)
+        if (isSet1Completed) //使用拼圖1進行測試
         {
             dialogueFrame.enabled = false;
+            ShowScoreRecord(); //顯示紀錄面板
         }
+    }
+
+    public void ShowScoreRecord()
+    {
+        string currentUser = PlayerPrefs.GetString("current_user");
+
+        // 取得當前分數
+        int currentScore = PlayerPrefs.GetInt($"score_{currentUser}", 0);
+
+        // 更新歷史分數
+        string historyScores = PlayerPrefs.GetString($"history_{currentUser}", "");
+        historyScores += currentScore + ",";
+        PlayerPrefs.SetString($"history_{currentUser}", historyScores);
+        PlayerPrefs.Save();
+
+        // 顯示分數紀錄
+        string[] scoreList = historyScores.Split(new char[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries);
+        string formattedScores = string.Join("\n", scoreList);
+
+        scoreRecordText.text = $"當前分數: {currentScore}\n歷史分數:\n{formattedScores}";
+        scoreRecordPanel.SetActive(true);
+    }
+
+    public void CloseScoreRecordPanel()  //關閉紀錄面板
+    {
+        scoreRecordPanel.SetActive(false);
+    }
+
+     private void ShowInformPanel() // 顯示資訊面板
+    {
+        informPanel.SetActive(true);
+    }
+
+    private void CloseInformPanel()     // 關閉資訊面板
+    {
+        informPanel.SetActive(false);
     }
 }
